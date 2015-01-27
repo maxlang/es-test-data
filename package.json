@@ -19,5 +19,11 @@
   "bugs": {
     "url": "https://github.com/maxlang/es-test-data/issues"
   },
-  "homepage": "https://github.com/maxlang/es-test-data"
+  "homepage": "https://github.com/maxlang/es-test-data",
+  "dependencies": {
+    "async": "^0.9.0",
+    "elasticsearch": "^3.1.1",
+    "lodash": "^3.0.0",
+    "moment": "^2.9.0"
+  }
 }
