@@ -1,0 +1,23 @@
+{
+  "name": "es-test-data",
+  "version": "0.0.0",
+  "description": "Generates test data for elasticsearch",
+  "main": "generate.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maxlang/es-test-data"
+  },
+  "keywords": [
+    "elasticsearch",
+    "test",
+    "data"
+  ],
+  "author": "Max Lang",
+  "bugs": {
+    "url": "https://github.com/maxlang/es-test-data/issues"
+  },
+  "homepage": "https://github.com/maxlang/es-test-data"
+}
