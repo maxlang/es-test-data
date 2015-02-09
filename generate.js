@@ -2,11 +2,10 @@ var es = require('elasticsearch');
 var _ = require('lodash');
 var async = require('async');
 var moment = require('moment');
-var u = require('util');
 
 client = es.Client({
   host: 'localhost:9200',
-  log: 'trace',
+  log: 'error',
   apiVersion: '1.3'
 });
 
@@ -14,16 +13,12 @@ var index = "test_data_index";
 var type = "test_data_type";
 
 var esWriter = async.cargo(function esBulkLoad(tasks, cb) {
-
-  console.log("t", _.isArray(tasks[1]));
-
-  console.log(tasks);
-
+  console.log("shipping");
   if (tasks && tasks.length) {
-    return client.bulk({index:index, type:type, body:tasks}, cb);
+    return client.bulk({index:index, type:type, body:tasks, refresh:false}, cb);
   }
   return cb();
-});
+}, 32); //must be power of 2
 
 var valMappingTemplate = {
   path_match: '*.*',
@@ -82,10 +77,13 @@ mapping.mappings[type] = {
     }
   ]
 };
+console.log('---');
+console.log(JSON.stringify(mapping));
+console.log('---');
 
-var num_objects = 100;
-var num_fields = 300;
-var num_days = 365;
+var num_objects = 50000;
+var num_fields = 180;
+var num_days = 5;
 
 var stringSize = 10;
 var maxInt = 1000000000;
@@ -107,10 +105,11 @@ var types = [
     }
 ];
 
+var timeout = 0;
 
 function generate() {
 
-  async.each(_.range(num_objects), function(i, cb) {
+  async.eachSeries(_.range(num_objects), function(i, cb) {
     console.log('creating object', i);
     var obj =  _.transform(new Array(num_fields), function (acc, v, i) {
       var now = moment('01-01-2014');
@@ -122,12 +121,25 @@ function generate() {
         };
       });
     }, {});
-
-    console.log("t", _.isArray(obj));
-
-    console.log("pushing to cargo", obj.length);
     esWriter.push([{index:{}}, obj]);
-    cb();
+    console.log("q length", esWriter.length(), esWriter.payload);
+    if (esWriter.length() > esWriter.payload) {
+      setTimeout(function() {
+        console.log('paused');
+        cb();
+      }, timeout);
+    } else {
+      timeout = Math.max(0, timeout - 10);
+      cb();
+    }
+    if (esWriter.length() > (esWriter.payload*2)) {
+      //esWriter.payload = Math.max(2, esWriter.payload/2);
+      timeout += 10;
+    }
+  }, function (err) {
+    console.log('done');
+    client.indices.refresh({index: index});
+
   });
 }
 
