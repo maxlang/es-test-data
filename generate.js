@@ -16,13 +16,13 @@ var activity_type = "test_activity_data_type";
 var esWriter = async.cargo(function esBulkLoad(tasks, cb) {
   console.log("shipping");
   if (tasks && tasks.length) {
-    return client.bulk({index:index, type:type, body:tasks, refresh:false}, cb);
+    return client.bulk({body:tasks, refresh:false}, cb);
   }
   return cb();
 }, 32); //must be power of 2
 
 var valMappingTemplate = {
-  path_match: '*.*',
+  match: '*',
   mapping: {
     index: 'not_analyzed',
     type: 'string',
@@ -93,14 +93,12 @@ var mapping = {
     }
   },mappings:{}};
 
-mapping.mappings[type] = mapping.mappings[activity_type] ={
+mapping.mappings[type] ={
   "dynamic_templates": [
-    {
-      "val_template": valMappingTemplate
-    },
     {
       "property_template": {
         "match": "*",
+        "match_mapping_type" : "object",
         "mapping": {
           "type": "nested",
           "properties": {
@@ -112,10 +110,13 @@ mapping.mappings[type] = mapping.mappings[activity_type] ={
           }
         }
       }
+    },
+    {
+      "val_template": valMappingTemplate
     }
   ]
 };
-
+mapping.mappings[activity_type] = _.cloneDeep(mapping.mappings[type]);
 mapping.mappings[activity_type]._parent = {
   type: type
 };
@@ -124,10 +125,10 @@ console.log('---');
 console.log(JSON.stringify(mapping));
 console.log('---');
 
-var num_objects = 10;
+var num_objects = 5000;
 var num_fields = 180;
 var num_days = 5;
-var activities = 2;
+var activities = 100;
 
 var stringSize = 10;
 var maxInt = 1000000000;
@@ -175,7 +176,7 @@ function generate() {
       });
     }, {});
     obj._id = i;
-    esWriter.push([{index:{_id:obj._id }}, obj]);
+    esWriter.push([{index:{_id:obj._id, _index:index, _type:type}}, obj]);
     console.log("q length", esWriter.length(), esWriter.payload);
     if (esWriter.length() > esWriter.payload) {
       setTimeout(function() {
@@ -210,13 +211,13 @@ function generateActivity() {
     async.eachSeries(_.range(activities), function(j, cb) {
       var obj = {
         _id: i + '_' + j,
-        _parent: i,
+        //_parent: i,
         user: types.string(),
         time: types.date(),
         verb: types.string(),
         data: types.float()
       };
-      esWriter.push([{index:{_id:obj._id, parent:obj._parent}}, obj]);
+      esWriter.push([{index:{_id:obj._id, _parent:i, _index:index, _type:activity_type}}, obj]);
       console.log("q length", esWriter.length(), esWriter.payload);
       if (esWriter.length() > esWriter.payload) {
         setTimeout(function() {
