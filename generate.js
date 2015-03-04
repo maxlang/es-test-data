@@ -46,14 +46,51 @@ var valMappingTemplate = {
       },
       searchable: {
         index: 'analyzed',
-        type: 'string'
+        type: 'string',
+        analyzer: 'trim_lowercase_keyword_analyzer'
       }
     }
   }
 };
 
 
-var mapping = {mappings:{}};
+var mapping = {
+  settings: {
+    index: {
+      number_of_replicas: 0,
+          number_of_shards: 4,
+
+        // Here we add an analyzer named "trim_lowercase_keyword_analyzer" that will strip whitespace and trim strings
+        // then store them whole (up to 256 characters). We'll use this in place of non-analyzed strings because it
+        // makes the app matching logic case insensitive and more consistent over different whitespace
+          analysis: {
+        analyzer: {
+          trim_lowercase_keyword_analyzer: {
+            type: 'custom',
+                tokenizer: 'keyword',
+                filter: [
+              'lowercase',
+              'trim'
+            ],
+                char_filter: []
+          }
+        },
+        tokenizer: {
+          keyword: {
+            type: 'keyword'
+          }
+        },
+        filter: {
+          trim: {
+            type: 'trim'
+          },
+          lowercase: {
+            type: 'lowercase'
+          }
+        }
+      }
+    }
+  },mappings:{}};
 
 mapping.mappings[type] = {
   "dynamic_templates": [
@@ -108,6 +145,8 @@ var types = [
 var timeout = 0;
 
 function generate() {
+  
+  client.indices.putSettings({index:index, body: {index:{refresh_interval:-1}}});
 
   async.eachSeries(_.range(num_objects), function(i, cb) {
     console.log('creating object', i);
@@ -140,6 +179,7 @@ function generate() {
     console.log('done');
     client.indices.refresh({index: index});
 
+    client.indices.putSettings({index:index, body: {index:{refresh_interval:'1s'}}});
   });
 }
 
