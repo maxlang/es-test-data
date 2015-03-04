@@ -5,7 +5,7 @@ var moment = require('moment');
 
 client = es.Client({
   host: 'localhost:9200',
-  log: 'error',
+  log: 'trace',
   apiVersion: '1.3'
 });
 
@@ -124,10 +124,10 @@ console.log('---');
 console.log(JSON.stringify(mapping));
 console.log('---');
 
-var num_objects = 5000;
+var num_objects = 10;
 var num_fields = 180;
 var num_days = 5;
-var activities = 100;
+var activities = 2;
 
 var stringSize = 10;
 var maxInt = 1000000000;
@@ -149,6 +149,11 @@ var types = [
     }
 ];
 
+types.string = types[0];
+types.int = types[1];
+types.float = types[2];
+types.date = types[3];
+
 var timeout = 0;
 
 function generate() {
@@ -157,7 +162,7 @@ function generate() {
 
   console.log('generate topics');
 
-  async.each(_.range(num_objects), function(i, cb) {
+  async.eachSeries(_.range(num_objects), function(i, cb) {
     console.log('creating object', i);
     var obj =  _.transform(new Array(num_fields), function (acc, v, i) {
       var now = moment('01-01-2014');
@@ -199,10 +204,10 @@ function generateActivity() {
 
   console.log('generate activity');
 
-  async.each(_.range(num_objects), function(i, cb) {
+  async.eachSeries(_.range(num_objects), function(i, cb) {
     console.log('adding activity for object', i);
 
-    async.each(_.range(activities), function(j, cb) {
+    async.eachSeries(_.range(activities), function(j, cb) {
       var obj = {
         _id: i + '_' + j,
         _parent: i,
