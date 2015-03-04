@@ -5,7 +5,7 @@ var moment = require('moment');
 
 client = es.Client({
   host: 'localhost:9200',
-  log: 'trace',
+  log: 'error',
   apiVersion: '1.3'
 });
 
